@@ -17,9 +17,10 @@ package io.microprofile.showcase.speaker.domain;
 
 import io.microprofile.showcase.speaker.model.Speaker;
 
+import java.io.Serializable;
 import java.util.Set;
 
-public abstract class Venue {
+public abstract class Venue implements Serializable {
 
     public abstract String getName();
 

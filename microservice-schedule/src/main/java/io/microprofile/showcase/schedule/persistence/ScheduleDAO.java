@@ -16,11 +16,13 @@
 package io.microprofile.showcase.schedule.persistence;
 
 import io.microprofile.showcase.bootstrap.BootstrapData;
+import io.microprofile.showcase.schedule.cdi.ScheduleCache;
 import io.microprofile.showcase.schedule.model.Schedule;
 import io.microprofile.showcase.schedule.model.adapters.LocalDateAdapter;
 import io.microprofile.showcase.schedule.model.adapters.LocalTimeAdapter;
 
 import javax.annotation.PostConstruct;
+import javax.cache.Cache;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.time.Duration;
@@ -39,11 +41,15 @@ public class ScheduleDAO {
 
 
     @Inject
+    @ScheduleCache
+    private Cache<Long, Schedule> scheduleCache;
+
+
+    @Inject
     BootstrapData bootstrapData;
 
     private long sequence = 11L;
 
-    private Map<Long, Schedule> scheduleMap = new ConcurrentHashMap<>();
     private Map<Long, String> venues = new ConcurrentHashMap<>();
 
     @PostConstruct
@@ -83,7 +89,7 @@ public class ScheduleDAO {
                     );
 
 
-                    scheduleMap.put(new Long(bootstrap.getId()), sched);
+                    scheduleCache.put(new Long(bootstrap.getId()), sched);
                     venues.put(venueId, sched.getVenue());
 
                 } catch (Exception e) {
@@ -103,17 +109,21 @@ public class ScheduleDAO {
             schedule.setSessionId(sequence++);
         }
 
-        scheduleMap.put(id, schedule);
+        scheduleCache.put(id, schedule);
 
         return schedule;
     }
 
     public List<Schedule> getAllSchedules() {
-        return new ArrayList<>(scheduleMap.values());
+        List<Schedule> schedules = new ArrayList<Schedule>();
+        for (Cache.Entry<Long, Schedule> scheduleEntry : scheduleCache) {
+            schedules.add(scheduleEntry.getValue());
+        }
+        return schedules;
     }
 
     public Optional<Schedule> findById(long id) {
-        return Optional.ofNullable(scheduleMap.get(id));
+        return Optional.ofNullable(scheduleCache.get(id));
     }
 
     public Schedule updateSchedule(Schedule schedule) {
@@ -121,27 +131,28 @@ public class ScheduleDAO {
             return addSchedule(schedule);
         }
 
-        scheduleMap.put(schedule.getId(), schedule);
+        scheduleCache.put(schedule.getId(), schedule);
         return schedule;
     }
 
     public void deleteSchedule(Long scheduleId) {
         if (scheduleId != null) {
-            scheduleMap.remove(scheduleId);
+            scheduleCache.remove(scheduleId);
         }
     }
 
     public List<Schedule> findByVenue(Long venueId) {
-        return scheduleMap.values()
+        return getAllSchedules()
             .stream()
             .filter(schedule -> schedule.getVenueId().equals(venueId))
             .collect(Collectors.toList());
     }
 
     public List<Schedule> findByDate(LocalDate date) {
-        return scheduleMap.values()
+        return getAllSchedules()
                 .stream()
                 .filter(schedule -> schedule.getDate().equals(date))
                 .collect(Collectors.toList());
     }
+
 }

@@ -19,6 +19,7 @@ package io.microprofile.showcase.session;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.json.JsonObject;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -26,7 +27,7 @@ import java.util.Collections;
  * @author Ken Finnigan
  * @author Heiko Braun
  */
-public class Session {
+public class Session implements Serializable {
 
     private int schedule;
 
