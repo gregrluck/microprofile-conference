@@ -23,6 +23,8 @@ import io.microprofile.showcase.schedule.model.adapters.LocalTimeAdapter;
 
 import javax.annotation.PostConstruct;
 import javax.cache.Cache;
+import javax.cache.annotation.CacheDefaults;
+import javax.cache.annotation.CacheRemove;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.time.Duration;
@@ -37,6 +39,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
+@CacheDefaults(cacheName = "schedule")
 public class ScheduleDAO {
 
 
@@ -135,10 +138,13 @@ public class ScheduleDAO {
         return schedule;
     }
 
+
+
+    @CacheRemove(cacheName="schedule")
     public void deleteSchedule(Long scheduleId) {
-        if (scheduleId != null) {
-            scheduleCache.remove(scheduleId);
-        }
+//        if (scheduleId != null) {
+//            scheduleCache.remove(scheduleId);
+//        }
     }
 
     public List<Schedule> findByVenue(Long venueId) {

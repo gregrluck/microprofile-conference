@@ -23,17 +23,19 @@ import javax.enterprise.inject.Produces;
 public class CacheProducer {
 
   private CacheManager cm;
+  private Cache<Long, Schedule> scheduleCache;
 
   @PostConstruct
   public void init() {
     cm = Caching.getCachingProvider().getCacheManager();
+    scheduleCache = cm.createCache("schedule", new MutableConfiguration<Long, Schedule>());
   }
 
   @Produces
   @ApplicationScoped
   @ScheduleCache
   public Cache<Long, Schedule> getCache() {
-    return cm.createCache("schedule", new MutableConfiguration<Long, Schedule>());
+    return cm.getCache("schedule");
   }
 
   @PreDestroy
