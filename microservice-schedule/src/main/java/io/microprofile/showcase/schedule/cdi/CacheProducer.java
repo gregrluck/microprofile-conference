@@ -6,15 +6,15 @@
 package io.microprofile.showcase.schedule.cdi;
 
 import io.microprofile.showcase.schedule.model.Schedule;
+import io.microprofile.showcase.schedule.persistence.LongKey;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.cache.Cache;
 import javax.cache.CacheManager;
-import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
+import javax.inject.Inject;
 
 /**
  * @author mike
@@ -22,24 +22,21 @@ import javax.enterprise.inject.Produces;
 @ApplicationScoped
 public class CacheProducer {
 
+  @Inject
   private CacheManager cm;
-  private Cache<Long, Schedule> scheduleCache;
+
+  private Cache<LongKey, Schedule> scheduleCache;
 
   @PostConstruct
   public void init() {
-    cm = Caching.getCachingProvider().getCacheManager();
-    scheduleCache = cm.createCache("schedule", new MutableConfiguration<Long, Schedule>());
+    scheduleCache = cm.createCache("schedule", new MutableConfiguration<LongKey, Schedule>());
   }
 
   @Produces
   @ApplicationScoped
   @ScheduleCache
-  public Cache<Long, Schedule> getCache() {
-    return cm.getCache("schedule");
+  public Cache<LongKey, Schedule> getCache() {
+      return scheduleCache;
   }
 
-  @PreDestroy
-  public void close() {
-    cm.close();
-  }
 }
