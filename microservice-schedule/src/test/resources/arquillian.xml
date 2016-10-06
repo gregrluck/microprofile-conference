@@ -15,5 +15,9 @@
   ~ limitations under the License.
 -->
 <arquillian xmlns="http://jboss.org/schema/arquillian" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jboss.org/schema/arquillian http://jboss.org/schema/arquillian/arquillian_1_0.xsd">
-  <container qualifier="arquillian-glassfish-embedded"/>
+  <container qualifier="arquillian-glassfish-embedded">
+   <configuration>
+       <property name="configurationXml">src/test/resources/domain.xml</property>
+   </configuration>
+  </container>
 </arquillian>
