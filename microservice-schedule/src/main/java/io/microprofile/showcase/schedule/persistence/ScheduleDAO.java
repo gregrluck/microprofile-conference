@@ -16,7 +16,6 @@
 package io.microprofile.showcase.schedule.persistence;
 
 import io.microprofile.showcase.bootstrap.BootstrapData;
-import io.microprofile.showcase.schedule.cdi.ScheduleCache;
 import io.microprofile.showcase.schedule.model.Schedule;
 import io.microprofile.showcase.schedule.model.adapters.LocalDateAdapter;
 import io.microprofile.showcase.schedule.model.adapters.LocalTimeAdapter;
@@ -45,9 +44,7 @@ import static java.lang.Long.parseLong;
 public class ScheduleDAO {
 
     @Inject
-    @ScheduleCache
     private Cache<LongKey, Schedule> scheduleCache;
-
 
     @Inject
     BootstrapData bootstrapData;
@@ -123,7 +120,7 @@ public class ScheduleDAO {
 
 
 
-    @CacheRemove(cacheName="schedule", cacheKeyGenerator = LongKeyGenerator.class)
+    @CacheRemove(cacheKeyGenerator = LongKeyGenerator.class)
     public void deleteSchedule(Long scheduleId) {
 //        if (scheduleId != null) {
 //            scheduleCache.remove(new MyKey(scheduleId));
