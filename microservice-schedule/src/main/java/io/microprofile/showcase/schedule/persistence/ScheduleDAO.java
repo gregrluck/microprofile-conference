@@ -31,59 +31,46 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static io.microprofile.showcase.schedule.persistence.LongKey.wrap;
+import static java.lang.Long.parseLong;
 
 @ApplicationScoped
 @CacheDefaults(cacheName = "schedule")
 public class ScheduleDAO {
 
-
     @Inject
     @ScheduleCache
-    private Cache<Long, Schedule> scheduleCache;
+    private Cache<LongKey, Schedule> scheduleCache;
 
 
     @Inject
     BootstrapData bootstrapData;
 
-    private long sequence = 11L;
-
-    private Map<Long, String> venues = new ConcurrentHashMap<>();
+    private final AtomicLong sequence = new AtomicLong(11);
 
     @PostConstruct
     private void initStore() {
         Logger.getLogger(ScheduleDAO.class.getName()).log(Level.INFO, "Initialise schedule DAO from bootstrap data");
+        bootstrap();
+    }
 
+    private void bootstrap() {
         LocalDateAdapter dateAdapter = new LocalDateAdapter();
         LocalTimeAdapter timeAdapter = new LocalTimeAdapter();
-
+        IdGenerator<String> venueNameGen = new IdGenerator<>(sequence);
         bootstrapData.getSchedules()
             .forEach(bootstrap -> {
-
                 try {
-
-                    Long venueId = null;
-                    for(Long key : venues.keySet()) {
-                        String v = venues.get(key);
-                        if(v.equals(bootstrap.getVenue())) {
-                            // existing venue
-                            venueId = key;
-                            break;
-                        }
-                    }
-
-                    // generate a new key
-                    if(null==venueId)
-                        venueId = sequence++;
-
+                    Long venueId = venueNameGen.getOrGenerateId(bootstrap.getVenue());
                     Schedule sched = new Schedule(
-                        new Long(bootstrap.getId()),
-                        new Long(bootstrap.getSessionId()),
+                        parseLong(bootstrap.getId()),
+                        parseLong(bootstrap.getSessionId()),
                         bootstrap.getVenue(),
                         venueId,
                         dateAdapter.unmarshal(bootstrap.getDate()),
@@ -91,42 +78,37 @@ public class ScheduleDAO {
                         Duration.ofMinutes(new Double(bootstrap.getLength()).longValue())
                     );
 
-
-                    scheduleCache.put(new Long(bootstrap.getId()), sched);
-                    venues.put(venueId, sched.getVenue());
-
+                    LongKey key = wrap(sched.getId());
+                    scheduleCache.put(key, sched);
                 } catch (Exception e) {
                     System.out.println("Failed to parse bootstrap data: "+ e.getMessage());
                 }
-
             });
-
     }
 
     public Schedule addSchedule(Schedule schedule) {
-
-        long id = sequence++;
+        long id = sequence.getAndIncrement();
         schedule.setId(id);
 
         if (schedule.getSessionId() == null) {
-            schedule.setSessionId(sequence++);
+            schedule.setSessionId(sequence.getAndIncrement());
         }
-
-        scheduleCache.put(id, schedule);
-
+        LongKey key = wrap(schedule.getId());
+        scheduleCache.put(key, schedule);
         return schedule;
     }
 
     public List<Schedule> getAllSchedules() {
-        List<Schedule> schedules = new ArrayList<Schedule>();
-        for (Cache.Entry<Long, Schedule> scheduleEntry : scheduleCache) {
+        List<Schedule> schedules = new ArrayList<>();
+        for (Cache.Entry<LongKey, Schedule> scheduleEntry : scheduleCache) {
             schedules.add(scheduleEntry.getValue());
         }
         return schedules;
     }
 
     public Optional<Schedule> findById(long id) {
-        return Optional.ofNullable(scheduleCache.get(id));
+        Schedule schedule = scheduleCache.get(wrap(id));
+        return Optional.ofNullable(schedule);
     }
 
     public Schedule updateSchedule(Schedule schedule) {
@@ -134,16 +116,17 @@ public class ScheduleDAO {
             return addSchedule(schedule);
         }
 
-        scheduleCache.put(schedule.getId(), schedule);
+        LongKey key = wrap(schedule.getId());
+        scheduleCache.put(key, schedule);
         return schedule;
     }
 
 
 
-    @CacheRemove(cacheName="schedule")
+    @CacheRemove(cacheName="schedule", cacheKeyGenerator = LongKeyGenerator.class)
     public void deleteSchedule(Long scheduleId) {
 //        if (scheduleId != null) {
-//            scheduleCache.remove(scheduleId);
+//            scheduleCache.remove(new MyKey(scheduleId));
 //        }
     }
 
